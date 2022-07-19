@@ -1,4 +1,5 @@
 package api.gmail;
+
 import api.gmail.exceptions.APIConnectionRuntimeException;
 
 import com.google.api.client.auth.oauth2.Credential;
@@ -66,9 +67,11 @@ public class APIConnection {
 
         // just testing
         for (Message message : inbox) {
-            logger.info(()-> "message id: " + inbox.indexOf(message));
-            logger.info(()-> "snippet" + getSnippet(getMessageHandle(message)));
-            logger.info(()-> "body" + getBody(getMessageHandle(message)));
+            logger.info(() -> "headers\n" + getBodyMimeType(getMessageHandle(message)));
+            logger.info(() -> "message id: " + inbox.indexOf(message));
+            logger.info(() -> "snippet" + getSnippet(getMessageHandle(message)));
+            logger.info(() -> "body" + getBody(getMessageHandle(message)));
+            logger.info(() -> "post");
         }
     }
 
@@ -81,11 +84,34 @@ public class APIConnection {
      * @return String containing the body of the message
      */
     private static String getBody(Message handle) {
-        return StringUtils.newStringUtf8(
-                Base64.decodeBase64(
-                        handle.getPayload()
-                                .getBody()
-                                .getData()));
+        String body = decode(handle.getPayload().getBody().getData());
+        if (body != null) {
+            return body;
+        } else {
+            return decode(handle.getPayload().getParts().get(0).getBody().getData());
+        }
+    }
+
+    /**
+     * Helper method to extract the mime type of the body
+     *
+     * @param handle handle to the contents of the message
+     * @return String containing the mime type (eg. text/html)
+     */
+    private static String getBodyMimeType(Message handle) {
+        return handle.getPayload().getParts().get(0).getMimeType();
+    }
+
+    /**
+     * Helper method.
+     * <p>
+     * Decodes the MessagePartBody data into string.
+     *
+     * @param bodyPart coded body part
+     * @return decoded string of the body part
+     */
+    private static String decode(String bodyPart) {
+        return StringUtils.newStringUtf8(Base64.decodeBase64(bodyPart));
     }
 
     /**
