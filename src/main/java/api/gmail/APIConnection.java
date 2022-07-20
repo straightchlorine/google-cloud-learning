@@ -28,10 +28,17 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class APIConnection {
+
+    /**
+     * Class-wide logger.
+     */
     static Logger logger = Logger.getLogger(APIConnection.class.getName());
+
+    /**
+     * Global HttpTransport object
+     */
     static final NetHttpTransport HTTP_TRANSPORT;
 
-    // initializing global HTTP_TRANSPORT object
     static {
         try {
             HTTP_TRANSPORT = GoogleNetHttpTransport.newTrustedTransport();
@@ -51,18 +58,18 @@ public class APIConnection {
     private static final JsonFactory JSON_FACTORY = GsonFactory.getDefaultInstance();
 
     /**
-     * directory with authorization tokens.
+     * Directory storing authentication tokens.
      */
     private static final String TOKENS_DIRECTORY_PATH = "tokens";
 
     /**
-     * user
+     * Global user name.
      */
     private static final String USER = "me";
 
     public static void main(String... args) {
-        // requests all the mails from the api
         List<Message> inbox = new ArrayList<>();
+        // requests all the mails from the api
         getInbox(inbox);
 
         // just testing
@@ -162,7 +169,7 @@ public class APIConnection {
             Gmail.Users.Messages.List request = service.users().messages().list(USER);
             ListMessagesResponse response = request.execute();
 
-            // runs until all messages are received
+            // runs until all messages are available locally
             while (response.getMessages() != null) {
                 inbox.addAll(response.getMessages());
                 if (response.getNextPageToken() != null) {
