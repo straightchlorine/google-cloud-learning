@@ -67,21 +67,6 @@ public class APIConnection {
      */
     private static final String USER = "me";
 
-    public static void main(String... args) {
-        List<Message> inbox = new ArrayList<>();
-        // requests all the mails from the api
-        getInbox(inbox);
-
-        // just testing
-        for (Message message : inbox) {
-            logger.info(() -> "headers\n" + getBodyMimeType(getMessageHandle(message)));
-            logger.info(() -> "message id: " + inbox.indexOf(message));
-            logger.info(() -> "snippet" + getSnippet(getMessageHandle(message)));
-            logger.info(() -> "body" + getBody(getMessageHandle(message)));
-            logger.info(() -> "post");
-        }
-    }
-
     /**
      * Helper method.
      * <p>
@@ -90,13 +75,32 @@ public class APIConnection {
      * @param handle handle to the contents
      * @return String containing the body of the message
      */
-    private static String getBody(Message handle) {
+    public static String getBody(Message handle) {
         String body = decode(handle.getPayload().getBody().getData());
-        if (body != null) {
+
+        if (body != null)
             return body;
-        } else {
-            return decode(handle.getPayload().getParts().get(0).getBody().getData());
+        else {
+            List<MessagePart> parts = getParts(handle.getPayload().getParts());
+            return decode(parts.get(0).getBody().getData());
         }
+    }
+
+    /**
+     * Recursive algorithm for extracting the genuine parts of the message.
+     *
+     * @param handle reference to the list of parts from the payload
+     * @return final set of parts
+     */
+    private static List<MessagePart> getParts(List<MessagePart> handle) {
+        if (handle == null)
+            return Collections.emptyList();
+        if (handle.get(0).getBody().getData() != null)
+            return handle;
+        if (handle.get(0).getParts() != null)
+            return getParts(handle.get(0).getParts());
+
+        return Collections.emptyList();
     }
 
     /**
@@ -141,7 +145,7 @@ public class APIConnection {
      * @param message basic Message type object (id, thread_id) JSON object
      * @return handle on the contents, so extraction of each part of the message is easier
      */
-    private static Message getMessageHandle(Message message) {
+    public static Message getMessageHandle(Message message) {
         try {
             return getService()
                     .users()
@@ -149,6 +153,39 @@ public class APIConnection {
                     .get(USER, message.getId())
                     .setFormat("full")
                     .execute();
+        } catch (IOException e) {
+            throw new APIConnectionRuntimeException(e);
+        }
+    }
+
+    /**
+     * Method that retrieves all the messages from the given page.
+     *
+     * @param token id of desired page
+     * @return list of the messages from the page, specified by the token
+     */
+    private static List<Message> getPage(String token) {
+        try {
+            Gmail service = getService();
+            Gmail.Users.Messages.List request = service.users().messages().list(USER).setPageToken(token);
+            ListMessagesResponse response = request.execute();
+            return response.getMessages();
+        } catch (IOException e) {
+            throw new APIConnectionRuntimeException(e);
+        }
+    }
+
+    /**
+     * Method retrieves 100 latest messages from the API.
+     *
+     * @return 100 newest mails
+     */
+    public static List<Message> getPage() {
+        try {
+            Gmail service = getService();
+            Gmail.Users.Messages.List request = service.users().messages().list(USER);
+            ListMessagesResponse response = request.execute();
+            return response.getMessages();
         } catch (IOException e) {
             throw new APIConnectionRuntimeException(e);
         }
