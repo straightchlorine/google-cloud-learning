@@ -7,11 +7,10 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
-import static api.gmail.APIConnection.getMessageHandle;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
 /**
- * Tests for the APIConnection class.
+ * Tests for the {@link APIConnection} class.
  */
 class APIConnectionTest {
 
@@ -19,13 +18,15 @@ class APIConnectionTest {
      * Class-wide inbox.
      */
     List<Message> inbox;
+    APIConnection con;
 
     /**
      * Getting 100 newest messages from API into the inbox.
      */
     @BeforeEach
     void setup() {
-        inbox = APIConnection.getPage();
+        con = new APIConnection();
+        inbox = con.getPage();
     }
 
     /**
@@ -37,7 +38,7 @@ class APIConnectionTest {
     @DisplayName("message body retrieval")
     void testBodyRetrieval() {
         for (Message message : inbox) {
-            assertNotEquals(null, APIConnection.getBody(getMessageHandle(message)));
+            assertNotEquals(null, con.getBody(message));
         }
     }
 }
